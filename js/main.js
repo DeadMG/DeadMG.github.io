@@ -1,723 +1,159 @@
-function replaceAll(find, replace, str) {
-  return str.replace(new RegExp(escapeRegExp(find), 'g'), replace);
-}
-function escapeRegExp(string) {
-    return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-}
-function getServerFilePath(id) {
-    return "/Archive2/" + id.substr(0, 2) + "/" + id.substr(2, id.length).trim() + "/main.cpp";
-}
-function getServerShareFilePath(id) {
-    return "/Archive/" + id.substr(0, 2) + "/" + id.substr(2, id.length).trim() + "/main.cpp";
-}
+const dom = ReactDOMFactories;
 
-
-var largePadding = "16px";
-var smallPadding = "5px";
-var dom = React.DOM;
-var Router = React.createFactory(ReactRouter.Router);
-var Link = React.createFactory(ReactRouter.Link);
-
-var BuildDependencies = [
-    { name: "Boost", notes: function() { return "Must be at least v1.58. Must include Boost.ProgramOptions, which is not header-only." } },
-    { name: "LLVM/Clang", notes: function() { return "Must be v3.6. Must be compiled with RTTI on Linux. Must be compiled without asserts." } },
-    { name: "Premake", notes: function() { return dom.span(null, "Must be Premake 4.4. Packages available on Linux, for Windows see ", dom.a({ href: "https://bitbucket.org/DeadMG/wide/downloads/premake4.exe" }, "here"), ".") } },
-    { name: "zlib", notes: function() { } },
-    { name: "libarchive", notes: function() { } },
-    { name: "Host toolchain", notes: function() { return "Wide uses RTTI and exceptions. Wide makes some use of C++11/14. Wide requires MSVC2015, Clang 3.6, or G++ 4.9 or later."; } }
-];
-
-var ExecutionDependencies = [
-    { name: "Standard library", notes: function() { return "Wide requires an Itanium-ABI Standard library and runtime support libraries. libstdc++ is supported, libc++ is theoretically supported but untested. On Windows, MinGW is required. It must be version >=4.8. Wide can automatically find the include path directories."; } },
-    { name: "Wide stdlib", notes: function() { return "Wide expects to find it's own runtime library packaged relative to either the executable or the working directory."; } }
-]
-
-var Reference = [
-    { 
-        name: "Building", 
-        render: function() {
-            return dom.div(null,
-                dom.h1(null, "Building Wide"),
-                dom.table(null,
-                    dom.tbody(null, 
-                        dom.tr(null,
-                            dom.th(null, "Build Dependency"),
-                            dom.th(null, "Notes")
-                        ),
-                        _.map(BuildDependencies, dep => {
-                            return dom.tr({ key: dep.name },
-                                dom.td(null, dep.name),
-                                dom.td(null, dep.notes()));
-                        }))
-                ),
-                dom.h1(null, "Running Wide"),
-                dom.table(null,
-                    dom.tbody(null, 
-                        dom.tr(null,
-                            dom.th(null, "Execution Dependency"),
-                            dom.th(null, "Notes")
-                        ),
-                        _.map(ExecutionDependencies, dep => {
-                            return dom.tr({ key: dep.name },
-                                dom.td(null, dep.name),
-                                dom.td(null, dep.notes()));
-                        }))
-                ),
-                dom.p(null, "To build Wide on Linux systems, pre-defined scripts are provided. Reference Wide/Tools/version to use them. Currently Ubuntu 12.04 and 15.10 have install-deps and build scripts provided. There is also a test script and a package script. For other Linux distros, reference these files as a starting point - it should be enough to install the deps from your favourite package manager, and then run premake and make."),
-                dom.p(null, "To build Wide on Windows, more fun is required. Premake can generate VS2010 projects which can be trivially upgraded to VS2015. As for the deps, you will have to build them yourself and figure out exactly how to reference them. TODO: Document this properly.")
-            )    
-        }
+const Header = React.createFactory(class extends React.Component {
+    render() {
+        return dom.div({ style: { width: "100%", background: "#7C7C7C", display: "flex", alignItems: "center", justifyContent: "center" } },
+            dom.div({ style: { padding: "20px", fontSize: "30px" } }, 
+                dom.a({ href: "index.html" }, "Puppy")));
     }
-]
+});
 
-var Caret = React.createFactory(React.createClass({
-    render: function() {
-        return dom.span({ style: {
-            borderTop: "4px solid",
-            borderRight: "4px solid transparent",
-            borderLeft: "4px solid transparent",
-            display: "inline-block",
-            verticalAlign: "middle",
-            marginLeft: "2px",
-            marginRight: "2px"            
-        }});
-    }
-}));
-
-var DropdownMenu = React.createFactory(React.createClass({
-    onHeaderClick: function() {
-        this.setState({ renderList: !this.state.renderList });
-    },
-    getInitialState: function() {
-        return {
-            renderList: false
-        }
-    },
-    render: function() {
-        return dom.div(null,
-            dom.div({ onClick: this.onHeaderClick, style: { cursor: "pointer" } }, this.props.text, Caret()), 
-            this.renderList()
-        );
-    },
-    renderList: function() {
-        if (!this.state.renderList) return null; 
-        var listStyle =  {
-            display: "flex", 
-            flexDirection: "column",
-            position: "absolute",
-            top: "100%",
-            left: "0",
-            zIndex: "3",
-            background: "white",
-            borderTop: "0",
-            border: "1px solid black",
-            color: "black",
-            marginTop: "-1px"
-        }
-        return dom.div({ style: listStyle }, 
-            React.Children.map(this.props.children, (child, index) => new DropdownItem({ key: index }, child)));        
-    }
-}));
-
-var DropdownItem = React.createFactory(React.createClass({
-    render: function() {
-        return dom.div({ style: { paddingLeft: largePadding, paddingRight: largePadding, paddingTop: smallPadding, paddingBottom: smallPadding }, className: "navitem" },
+const Content = React.createFactory(class extends React.Component {
+    render() {
+        return dom.div({ style: { paddingTop: "5px", paddingBottom: "5px", paddingLeft: "15px", paddingRight: "5px" } },
             this.props.children);
     }
-}));
-
-var NavItem = React.createFactory(React.createClass({
-	render: function() {
-		var item = {
-			marginLeft: "15px",
-			marginRight: "15px",
-            position: "relative",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            color: "#777"            
-		};
-		return dom.div({ style: item }, this.props.children);
-	}
-}));
-
-var NavBar = React.createFactory(React.createClass({
-	render: function() {
-		var navBarStyle = {
-			backgroundColor: "black",
-			height: "50px",
-			display: "flex"
-		};
-		var innerNavBarStyle = {
-			display: "flex",
-			alignItems: "center",
-			justifyContent: "initial",
-			flexGrow: "1",
-			color: "#777"
-		};
-		return dom.div({ style: navBarStyle, className: "navbar" },
-		    dom.div({ style: innerNavBarStyle }, 
-	            this.renderLeftSide(),
-			    this.renderRightSide()
-		));
-	},
-	renderLeftSide: function() {
-		var leftStyle = {
-			display: "flex",
-            height: "100%"
-		};
-		return dom.div({ style: leftStyle }, 
-		    NavItem(null, DropdownMenu({ text: "Tutorials" }, "Item1", "Item2")),
-			NavItem(null, DropdownMenu({ text: "Reference" }, _.map(Reference, item => new Link({ key: item.name, to: 'Reference/' + item.name }, item.name))))
-	    );
-	},
-	renderRightSide: function() {
-		var rightStyle = {
-			marginLeft: "auto",
-			display: "flex",
-            height: "100%"
-		};
-		return dom.div({ style: rightStyle }, 
-		    //NavItem(null, "Trello"),
-			//NavItem(null, Link({ to: "/Blog" }, "Blog")),
-			//NavItem(null, "Chat"),
-			NavItem(null, dom.a({ href: "https://github.com/DeadMG/Wide" }, "GitHub")),
-			//NavItem(null, "Donate"),
-			NavItem(null, Link({ to: "/" }, "Home"))
-	    );
-	}
-}));
-
-var LoadingSpinner = React.createFactory(React.createClass({
-    render: function() {
-        return dom.div({ className: "spinner-loader" });
-    }
-}));
-
-var Error = React.createFactory(React.createClass({
-    getInitialState: function() {
-        return { hovered: false };
-    },
-    render: function() {
-        if (!this.state.hovered) {
-            return dom.span(
-                { 
-                    style: { pointerEvents: "all", textDecoration: "underline wavy red" },
-                    onMouseOver: () => this.setState({ hovered: true })
-                }, 
-                this.props.children);            
-        }
-        return dom.span({ style: { position: "relative", pointerEvents: "all", textDecoration: "underline wavy red"  }, onMouseLeave: () => this.setState({ hovered: false }) }, 
-            this.props.children,
-            dom.span({ style: { position: "absolute", zIndex: 2, left: "3px", top: "calc(100% + 3px)", boxShadow: "1px 1px black" } },
-                dom.span({ style: { backgroundColor: "#CCCCCC" } }, this.props.errorText)));
-    },
-}));
-
-var Parse = (function() {
-    var cache = {};
-    return function(text) {
-        if (!cache[text])
-            cache[text] = Module.Parse(text);
-        return cache[text];
-    }
-})();
-
-var FileList = React.createFactory(React.createClass({
-    getInitialState: function() {
-        return {};
-    },
-    render: function() {        
-        return dom.div({
-            style: {
-                display: "flex",
-                flexDirection: "column",
-                marginLeft: largePadding,
-                background: "black",
-                color: "grey"
-            }
-        }, this.renderFileList(), this.renderNewFile());
-    },
-    renderFileList: function() {
-        return _.map(this.props.files, file => {
-            return dom.div({ key: file }, this.renderFileLink(file));
-        });
-    },
-    renderFileLink: function(fileName) { 
-        return dom.div({ style: { display: "flex" }},
-            dom.div({
-                style: {
-                    padding: smallPadding,
-                    cursor: "pointer"
-                },
-                onClick: () => {
-                    var newFiles = _.filter(this.props.files, file => file !== fileName);
-                    if (this.props.currentFile === fileName)
-                        this.props.onChange({ currentFile: newFiles.length > 0 ? newFiles[0].name : null, files: newFiles });
-                    else
-                        this.props.onChange({ files: newFiles, currentFile: this.props.currentFile })
-                }
-            }, "-"), 
-            dom.div({ 
-                onClick: () => this.props.onChange({ 
-                    files: this.props.files.slice(0),
-                    currentFile: fileName
-                }),
-                style: {
-                    paddingLeft: "calc(" + largePadding + " - " + smallPadding + ")",
-                    paddingRight: largePadding,
-                    color: "white",
-                    paddingTop: smallPadding, 
-                    paddingBottom: smallPadding, 
-                    background: this.props.currentFile == fileName ? "grey" : "black",
-                    flexGrow: "1"
-                }
-            }, fileName));        
-    },
-    renderNewFile: function() {
-        var containerStyle = {
-            marginLeft: "calc(" + largePadding + " + 10px)",
-            marginRight: largePadding,
-            marginTop: smallPadding,
-            marginBottom: smallPadding,
-            display: "flex"
-        };
-        if (!this.state.newFile) {
-            return dom.div({ style: _.extend(containerStyle, { cursor: "pointer" }), onClick: () => this.setState({ newFile: true }) }, "+");
-        }
-        return dom.div({ style: containerStyle },
-            dom.div({
-                ref: div => div && div.focus(),
-                contentEditable: true,
-                autoFocus: true,
-                onBlur: event => this.addFile(event.target.textContent),
-                onKeyDown: event => { if (event.keyCode === 13) this.addFile(event.target.textContent); },
-                style: {
-                    background: "white",
-                    color: "black",
-                    height: "20px",
-                    flexGrow: "1"
-                }
-            }));
-    },
-    addFile: function(name) {
-        if (name.trim() == "") {
-            this.setState({ newFile: false });
-            return;
-        }
-        var newFiles = this.props.files.slice(0);
-        newFiles.push(name);
-        this.setState({ newFile: false });
-        this.props.onChange({ currentFile: name, files: newFiles });
-    },
-}));
-
-var Examples = "examples";
-var Help = "help";
-var Output = "output";
-var Errors = "errors";
-
-var Results = React.createFactory(React.createClass({
-    render: function() {
-        return dom.div({ style: { marginLeft: largePadding, flexGrow: "1", marginRight: largePadding, position: "relative" }},
-            dom.div({ style: { display: "flex", position: "absolute", bottom: "100%" } },
-                this.renderResultsTab("Help", Help),
-                this.renderResultsTab("Examples", Examples),
-                this.renderResultsTab("Output", Output),
-                this.renderResultsTab("Errors", Errors)),
-            dom.div({ style: { height: "100%", border: "1px solid black" } }, 
-                this.renderTabContents(this.props.location)));        
-    },
-    renderResultsTab: function(tabName, tabIdentifier) {
-        return dom.div({
-            style: {
-                paddingLeft: largePadding,
-                paddingRight: largePadding,
-                color: "white",
-                paddingTop: smallPadding, 
-                paddingBottom: smallPadding, 
-                background: this.props.location == tabIdentifier ? "grey" : "black"
-            },
-            onClick: () => this.props.onChange(tabIdentifier)
-        }, tabName);
-    },
-    renderTabContents: function(location) {
-        switch(location) {
-            case Examples:
-                return this.renderExamplesTab();
-            case Help:
-                return this.renderHelpTab();
-            case Output:
-                return this.renderOutputTab();
-            case Errors:
-                return this.renderErrorsTab();
-        }
-    },
-    renderExamplesTab: function() {
-        return null;
-    },
-    renderHelpTab: function() {
-        return this.props.helpText;
-    },
-    renderOutputTab: function() {
-        if (this.props.requesting)
-            return LoadingSpinner();
-        if (this.props.results)
-            return this.props.results;
-    },
-    renderErrorsTab: function() {
-        return _.map(_.filter(this.props.files, file => file.type == "wide"), file => {
-            var errs = Parse(file.source); 
-            var parserErrs = _.map(errs.parserResult, err => this.renderError(err, file.name));
-            var lexerErrs = _.map(_.filter(errs.lexerResult, err => err.what), err => this.renderError(err, file.name));
-            return parserErrs.concat(lexerErrs);
-        }).concat(_.map(this.props.compilerErrors, error => this.renderSemanticError(error)));
-    },
-    renderSemanticError: function(error) {
-        return dom.div(null, error.Where.Filename, ":", error.Where.Begin.Line, ":", error.Where.Begin.Column, "-", error.Where.End.Line, ":", error.Where.End.Column, dom.span({ style: { paddingLeft: "10px" } }, error.What));
-    },
-    renderError: function(error, filename) {
-        return dom.div(null, filename, ":", error.where.begin.line, ":", error.where.begin.column, "-", error.where.end.line, ":", error.where.end.column, dom.span({ style: { paddingLeft: "10px" } }, error.what));
-    }
-}));
-
-var Playground = React.createFactory(React.createClass({
-    getInitialState: function() {
-        return {
-            files: this.props.files || [
-                { name: "HelloWorld.wide", source: "Main() {\n    std.cout << \"Hello, World!\";\n}", type: "wide" },
-                { name: "main.cpp", source: "#include <iostream>", type: "cpp" },
-            ],
-            currentFile: this.props.files ? this.props.files[0].name : "HelloWorld.wide",
-            requesting: false
-        };
-    },
-    render: function() {
-        return dom.div({
-                style: {
-                    marginTop: largePadding,
-                    marginBottom: largePadding,
-                    height: "calc(100vh - 110px)"                    
-                }
-            }, 
-            this.renderHeaderButtons(),
-            dom.div({
-                    style: {
-                        display: "flex",
-                        height: "calc(100% - 40px)"
-                    }
-                },
-                FileList({
-                    currentFile: this.state.currentFile,
-                    files: _.map(this.state.files, file => file.name),
-                    onChange: newState => this.setState({
-                        currentFile: newState.currentFile,
-                        files: _.map(newState.files, file => ({
-                            name: file,
-                            source: (_.find(this.state.files, sFile => sFile.name == file) || { source: "" }).source,
-                            type: file.endsWith('.wide') ? "wide" : "cpp"
-                        }))
-                    })
-                }),
-                this.renderCodeView(),
-                Results({
-                    results: this.state.results,
-                    requesting: this.state.requesting,
-                    helpText: this.props.helpText,
-                    files: this.state.files,
-                    compilerErrors: this.state.compilerResults && this.state.compilerResults.Errors,
-                    location: this.state.resultsLocation ? this.state.resultsLocation : (this.props.helpText ? Help : Output),
-                    onChange: newLocation => this.setState({ resultsLocation: newLocation })
-                })
-            )
-        );
-    },
-    renderHeaderButtons: function() {
-        return dom.div({ style: { marginBottom: largePadding, marginTop: "0", display: "flex" } },
-            this.renderHeaderButton(dom.button({ onClick: () => this.compile() }, "Compile")),
-            this.renderHeaderButton(dom.button({ onClick: () => this.share() }, "Share")));
-    },
-    renderHeaderButton: function(button) {
-        return dom.div({ style: { marginLeft: largePadding } }, button);  
-    },
-    renderCodeView: function() {
-        var currentFile = _.find(this.state.files, file => file.name == this.state.currentFile);
-        var isChrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
-        var browserSpecificMargins = isChrome ? { marginLeft: "1px", marginTop: "-1px" } : { margin: "1px" };
-        return dom.div({
-            style: {
-                width:"50vw",
-                display: "flex",
-                position: "relative",
-                fontSize: "12px",
-                flexShrink: 0
-            }
-        }, dom.textarea({
-            className: "coliruFont",
-            style: _.extend({}, browserSpecificMargins, {
-                width: "100%",
-                paddingLeft: largePadding,
-                zIndex: 0,
-                fontSize: "12px",
-                backgroundColor: "transparent",
-                border: "0px none"
-            }),
-            autoComplete: false,
-            autoCorrect: false,
-            autoCapitalize: false,
-            spellCheck: false,
-            value: currentFile ? currentFile.source : "",
-            onChange: event => {
-                var newState = {
-                    files: this.state.files.slice(0),
-                    currentFile: this.state.currentFile,
-                    showCompilerErrors: false
-                };
-                _.find(newState.files, file => file.name == this.state.currentFile).source = event.target.value;
-                this.setState(newState);
-            }
-        }),
-        dom.div({ style: {
-            position: "absolute",
-            top: "0px",
-            left: "0px",
-            border: "1px solid black",
-            width: "100%",
-            height: "100%",
-            boxSizing: "padding-box",
-            zIndex: 1,
-            backgroundColor: "transparent",
-            pointerEvents: "none"
-        }}, currentFile ? this.renderHighlightedText(currentFile.source, currentFile.type, currentFile.name) : ""));
-    },
-    renderHighlightedText: function(text, type, filename) {
-        var results = Parse(text);        
-        var lines = text.split('\n');
-        return dom.div({ style: { display: "flex" } },
-            dom.div({ style: { display: "flex", flexDirection: "column" } }, 
-                _.map(lines, (line, index) => 
-                    dom.span({ key: index, className: "coliruFont", style: { width: largePadding, display: "inline-block", backgroundColor: "#DDDDDD" }}, index + 1))),
-            dom.pre({ style: { display: "inline", margin: 0 }, className: "coliruFont" }, 
-                type == "wide" ? this.highlightResult(text, results, filename) : text)
-        );
-    },
-    highlightResult: function(text, results, filename) {
-        if (results.lexerResult.length == 0)
-            return text;
-        var lastChild = this.renderCaretInText(text, _.last(results.lexerResult).where.end.offset, text.length);
-        var prevOffset = { offset: 0 };
-        if (this.state.showCompilerErrors && this.state.compilerResults) {
-            var errors = _.filter(this.state.compilerResults.Errors, error => error.Where.Filename == filename);
-            if (errors.length != 0) {
-                var prevErrorOffset = 0;
-                var afterAll = _.filter(results.lexerResult, token => token.where.begin.offset > _.last(errors).Where.End.Offset);
-                
-                var errors = _.map(errors, error => {
-                    if (prevErrorOffset == error.Where.End.Offset) return [];
-                    // The parser result should cover a valid range of tokens.            
-                    var before = _.filter(results.lexerResult, token => token.where.begin.offset < error.Where.Begin.Offset && token.where.begin.offset >= prevErrorOffset);
-                    var middle = _.filter(results.lexerResult, token => token.where.begin.offset >= error.Where.Begin.Offset && token.where.end.offset <= error.Where.End.Offset);
-                    
-                    var beforeResults = this.renderLexerResults(before, text, null, prevOffset);
-                    var middleResults = this.renderLexerResults(middle, text, null, prevOffset);
-                    if (middleResults.length != 0) {
-                        if (_.isString(middleResults[0])) {
-                            beforeResults.push(middleResults[0]);
-                            middleResults = middleResults.slice(1);
-                        }
-                    }
-                    prevErrorOffset = _.last(middle).where.end.offset;
-                    return [
-                        beforeResults,
-                        new Error({ errorText: error.What }, middleResults)
-                    ];                
-                });
-                var afterResults = this.renderLexerResults(afterAll, text, lastChild, prevOffset);
-                return errors.concat(afterResults);                
-            }
-        }
-        if (results.parserResult && results.parserResult.length != 0) {
-            var prevErrorOffset = 0;
-            var afterAll = _.filter(results.lexerResult, token => token.where.begin.offset > _.last(results.parserResult).where.end.offset);
-            
-            var errors = _.map(results.parserResult, error => {
-                // The parser result should cover a valid range of tokens.            
-                var before = _.filter(results.lexerResult, token => token.where.begin.offset < error.where.begin.offset && token.where.begin.offset >= prevErrorOffset);
-                var middle = _.filter(results.lexerResult, token => token.where.begin.offset >= error.where.begin.offset && token.where.end.offset <= error.where.end.offset);
-                
-                var beforeResults = this.renderLexerResults(before, text, null, prevOffset);
-                var middleResults = this.renderLexerResults(middle, text, null, prevOffset);
-                if (middleResults.length != 0) {
-                    if (_.isString(middleResults[0])) {
-                        beforeResults.push(middleResults[0]);
-                        middleResults = middleResults.slice(1);
-                    }
-                }
-                prevErrorOffset = _.last(middle).where.end.offset;
-                return [
-                    beforeResults,
-                    new Error({ errorText: error.what }, middleResults)
-                ];                
-            });
-            var afterResults = this.renderLexerResults(afterAll, text, lastChild, prevOffset);
-            return errors.concat(afterResults);
-        }
-        return this.renderLexerResults(results.lexerResult, text, lastChild, prevOffset);
-    },
-    renderLexerResults: function(lexerResults, text, lastChild, prevOffset) {
-        return _.flatten(_.map(lexerResults, token => {
-            var previousOffset = prevOffset.offset;
-            prevOffset.offset = token.where.end.offset;
-            return [
-                this.renderCaretInText(text, previousOffset, token.where.begin.offset),
-                this.renderResult(text, token)
-            ];
-        })).concat(lastChild);        
-    },
-    renderResult: function(text, result) {
-        var tokenText = this.renderCaretInText(text, result.where.begin.offset, result.where.end.offset);
-        if (result.what) {
-            return new Error({ errorText: result.what }, tokenText);
-        }
-        if (result.IsLiteral())
-            return dom.span({ style: { color: "red" }}, tokenText);
-        if (result.IsKeyword())
-            return dom.span({ style: { color: "blue" }}, tokenText);
-        if (result.IsComment())
-            return dom.span({ style: { color: "green" }}, tokenText);
-        return dom.span(null, tokenText);
-    },
-    renderCaretInText: function(text, begin, end) {
-        var subText = text.substring(begin, end);
-        if (subText == "")
-            return null;
-        return subText;
-    },
-    sendFiles: function(filter) {
-        return _.map(_.filter(this.state.files, filter), file => jQuery.ajax("http://coliru.stacked-crooked.com/share", {
-            method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                src: file.source,
-                cmd: ""
-            })
-        }));        
-    },
-    compile: function() {      
-        this.setState({ requesting: true });
-        var src = {
-            Source: _.map(_.filter(this.state.files, file => file.type == "wide"), file => ({
-                Name: file.name,
-                Contents: file.source
-            })),
-            CppSource: _.map(_.filter(this.state.files, file => file.type == "cpp"), file => ({
-                Name: file.name,
-                Contents: file.source
-            })),
-            StdlibPath: "/usr/local/bin/Wide/WideLibrary"
-        };        
-        jQuery.ajax("http://coliru.stacked-crooked.com/compile", {
-            method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                src: JSON.stringify(src),
-                cmd: "python -c \"import subprocess, json; compiler_output, _ = subprocess.Popen('/usr/local/bin/Wide/Wide --interface=JSON main.cpp', stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell = True).communicate(); program_output, _ = subprocess.Popen('g++ a.o && ./a.out', stdout = subprocess.PIPE, stderr = subprocess.STDOUT, shell = True).communicate(); print(json.dumps({ 'compiler': compiler_output, 'program': program_output }))\""
-            })
-        }).then(result => {
-            var data = JSON.parse(replaceAll("'x86_64' is not a recognized processor for this target (ignoring processor)", "", result));
-            var compilerData = JSON.parse(data.compiler);
-            var location = compilerData.Errors.length != 0 ? Errors : Output;
-            this.setState({                
-                results: data.program, 
-                compilerResults: compilerData,
-                requesting: false,
-                showCompilerErrors: true,
-                resultsLocation: location
-            });
-        }); 
-    },
-    componentDidMount: function() {
-        this.props.files && this.compile();
-    },
-    share: function() {
-        var json = JSON.stringify(this.state);
-        jQuery.ajax("http://coliru.stacked-crooked.com/share", {
-            method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                src: json,
-                cmd: "cat main.cpp"
-            })
-        }).then(result => {
-            this.props.history.push('/Sample/' + result);
-        });
-    }
-}));
-
-var Blog = React.createClass({
-	render: function() {
-		return dom.span(null, "Hello, World!");
-	}
 });
 
-var App = React.createClass({
-	render: function() {
-		return dom.div(null,
-		    NavBar(),
-			this.props.children
-		);
-	}
-});
+const Sidebar = React.createFactory(class extends React.Component {
+    render() {
+        return dom.div({ style: { height: "100%", borderRight: "1px solid #7C7C7C" } },
+            this.block("DX12", [
+                this.error("not started"),
+            ]),
+            this.block("DXR", [
+                this.link("overview.html", "overview"),
+                this.link("bindless.html", "bindless"),
+            ]));
+    }
 
-var Home = React.createClass({
-    render: function() {
-        return Playground({
-            helpText: "Welcome to codepuppy.co.uk",
-            history: this.props.history
-        });
+    error(text) {
+        return this.sidebarItem(dom.span({ style: { color: "red" } }, text));
+    }
+
+    block(headerText, links) {
+        return dom.div({ style: { paddingBottom: "30px" } },
+            this.heading(headerText),
+            ...links);
+    }
+
+    heading(text) {
+        return this.sidebarItem(dom.h3({ style: { margin: 0 } }, text));
+    }
+
+    link(src, contents) {
+        return this.sidebarItem(dom.a({ href: src }, contents));
+    }
+
+    sidebarItem(contents) {
+        return dom.div({ style: { display: "flex", justifyContent: "flex-end", paddingTop: "5px", paddingBottom: "5px", paddingLeft: "5px", paddingRight: "15px"  } },
+            contents);
     }
 });
 
-var Sample = React.createClass({
-    getInitialState: function() {
-        return {};
-    },
-    componentDidMount: function() {
-        var id = this.props.params.sampleId;
-        jQuery.ajax("http://coliru.stacked-crooked.com" + getServerShareFilePath(id), {
-            method: "GET"
-        }).then(result => {
-            this.setState({ files: JSON.parse(result).files });
-        });
-    },
-    render: function() {
-        if (this.state.files)
-            return new Playground({
-                history: this.props.history,
-                files: this.state.files
-            });
-        return new LoadingSpinner();        
+const App = React.createFactory(class extends React.Component {
+    render() {
+       return dom.div({ style: { height: "100vh", display: "flex", flexDirection: "column" } },
+           dom.div({ style: { flexShrink: 0 } }, Header()),
+           dom.div({ style: { flexGrow: 1, display: "flex" } },
+               dom.div({ style: { height: "100%", flexBasis: "33%", flexShrink: 0 } }, Sidebar()),
+               dom.div({ style: { overflow: "auto" } }, Content({}, this.props.children))));
     }
 });
 
-var ReferencePage = React.createClass({
-    render: function() {
-        return dom.div({ style: { paddingLeft: largePadding, paddingBottom: largePadding } }, 
-            _.find(Reference, item => item.name == this.props.params.name).render());
+const Main = React.createFactory(class extends React.Component {
+    render() {
+        return dom.div({}, 
+            dom.h2({ style: { margin: 0 } }, "Welcome"),
+            dom.span({}, "I'm writing some totally random content about programming and stuff. If you find it useful, that's great."));
     }
-})
+});
 
-const routes = {
-  component: App,
-  childRoutes: [
-    { path: 'Sample/:sampleId', component: Sample },
-    { path: 'Blog', component: Blog },
-    { path: 'Reference/:name', component: ReferencePage },
-    { path: '/', component: Home }
-  ]
+const DXR = {
+    Overview: React.createFactory(class extends React.Component {
+        render() {
+            return dom.div({}, 
+                dom.h2({ style: { margin: 0 } }, "DXR Overview"),
+                dom.p({}, "DXR, or DirectX Raytracing, is a component from Microsoft that enables you to access raytracing systems in a device-independent way with DirectX 12. For this we'll assume that you already have some idea of how to use DirectX 12."),
+                dom.p({},
+                    dom.span({}, "DXR completely bypasses the standard rasterisation pipeline. It is best described as a fancy compute shader setup where the runtime supplies you with some extra capabilities and hardware acceleration. "),
+                    dom.span({}, "Some APIs are shared between DXR and compute shaders in addition. Here's a simple description of how the process works.")),
+                dom.h3({ style: { margin: 0 } }, "Prepare structures"),
+                dom.p({},
+                    dom.span({}, "DXR requires two important data structures to operate; acceleration structures, and shader binding tables. Acceleration structures are easy, so we will discuss them first. Unlike the SBT, their contents are abstracted from the "),
+                    dom.span({}, "developer, but you can think of them as similar to an octree or BVH. They process the geometry of the scene and produce a structure that can be used to accelerate ray lookups. In order for rays to hit anything, they must be present "),
+                    dom.span({}, "in an acceleration structure. Acceleration structures have two levels; top and bottom. Bottom level acceleration structures (BLAS) generally encompass smaller details; for example, one static mesh could have one BLAS. BLAS can be "),
+                    dom.span({}, "instanced. Top level acceleration structures (TLAS) are used to encompass the geometries of whole scenes. When first learning DXR the general strategy should be to prebuild BLAS for any static meshes at startup, then build BLAS for "),
+                    dom.span({}, "dynamic geometry and a TLAS for the scene every frame. With the TLAS built you can trace some rays.")),
+                dom.p({},
+                    dom.span({}, "The second structure is a shader binding table. In DXR rays can hit any object in the TLAS, so all shaders for all objects must be present and ready to go. The shader binding table essentially tells the system what shader to launch "),
+                    dom.span({}, "and what parameters to supply when a ray intersects any given object. The main downside of the SBT is that it has a fixed structure, but there is no API to build this structure, and any errors in the structure can produce highly "),
+                    dom.span({}, "confusing results, such as a black screen, bad performance, device removal, visual artifacts, or all of the above. In theory you could prebuild the SBT, but in practice, your shaders will have per-frame parameters, so you will "),
+                    dom.span({}, "rebuild it each frame.")),
+                dom.p({},
+                    dom.span({}, "Finally, as DXR is a compute API, we must write the raytracing results ourselves to one (or several) UAVs. However you cannot bind back buffer render targets as UAV anymore, so you will need a texture of a suitable type. Considering "),
+                    dom.span({}, "the need for image post-processing and associated data buffers, this is in practice no big loss. ")),
+                dom.h3({ style: { margin: 0 } }, "DispatchRays"),
+                dom.p({},
+                    dom.span({}, "Once the SBT and TLAS are prepared, you can launch your rays. This basically just means calling DispatchRays with the number of rays you want and the SBT buffers. Unlike a compute shader note that you do not specify the number of "),
+                    dom.span({}, "thread groups or threads directly; you simply specify the ray count. Theoretically there are many schemes you could use, but the simplest thing to do is use Depth=1, and set the width and height as the width and height of the "),
+                    dom.span({}, "render target, which gives you 1 ray per output pixel.")),
+                dom.h3({ style: { margin: 0 } }, "Image post-processing"),
+                dom.p({},
+                    dom.span({}, "To get a very high quality image with ray tracing, often thousands of rays per pixel are required. In practice we can only support a few, often only one. The way to handle this is to use probabilistic Monte Carlo methods. This "),
+                    dom.span({}, "massively reduces the number of samples required such that the output is in real time, but requires significant image post-processing to clean up the noise which occurs. There are many algorithms dedicated to cleaning up the image "),
+                    dom.span({}, "noise. We will discuss some of them here, although I have a lot left to learn. The main advice to give is to learn them in a basic order; bilateral filter, then a-trous, then SVGF, then A-SVGF, then attempt ReBLUR. The papers "),
+                    dom.span({}, "describing the more advanced algorithms assume you already know all the context.")),
+                dom.h3({ style: { margin: 0 } }, "Finalisation"),
+                dom.p({},
+                    dom.span({}, "At the end of this process, we have a UAV with our image on it. We can then apply tonemapping, and perhaps AA and other final touchups. Then we can use CopyResource to copy our UAV to the backbuffer and Present. Since virtually all ",
+                    dom.span({}, "our resources spend their entire life in UnorderedAccess, there is little need for resource transition barriers for most resources, but we will be needing UAV barriers."))));
+        }
+    }),
+    Bindless: React.createFactory(class extends React.Component {
+        render() {
+            return dom.div({},
+                dom.h2({ style: { margin: 0 } }, "SM 6.6 Bindless"),
+                dom.p({},
+                    dom.span({}, "DXR benefits highly from using Shader Model 6.6's new Bindless feature. This is because of the way that the SBT is built; it must contain all parameters for all shaders. It's possible to use legacy binding here, but considerably more "),
+                    dom.span({}, "painful. Bindless resources are very simple to use. We create one SHADER_VISIBLE descriptor heap with a large number of entries, say, 100,000. Then we place all resources in this descriptor heap. We then pass the offset to the shader, "),
+                    dom.span({}, "which can read the resource. This means all shaders accept exactly one constant buffer as their only direct parameter, which is very easy to handle. See example HLSL below:"),
+                dom.pre({}, `struct FilterParameters
+{
+    uint ImageWidth;
+    uint ImageHeight;
+        
+    uint InputDataIndex;
+    uint InputTextureIndex;
+    uint OutputTextureIndex;
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-    ReactDOM.render(Router({ routes: routes }), document.getElementById("App"));	
-}, false);
+ConstantBuffer<FilterParameters> Parameters : register(b0);
 
+[numthreads(32, 32, 1)]
+void compute(int2 id: SV_DispatchThreadID)
+{
+    RWStructuredBuffer<RaytracingOutputData> inputData = ResourceDescriptorHeap[Parameters.InputDataIndex];
+    RWTexture2D<float4> input = ResourceDescriptorHeap[Parameters.InputTextureIndex];
+    RWTexture2D<float4> output = ResourceDescriptorHeap[Parameters.OutputTextureIndex];
+    
+    int2 dimensions = int2(Parameters.ImageWidth, Parameters.ImageHeight);
+    
+    if (any(id >= dimensions))
+        return;
+    
+    RaytracingOutputData rtData = inputData[index(id, Parameters.ImageWidth)];
+    
+    output[id] = input[id] * asFloat(rtData.Albedo) + asFloat(rtData.Emission);
+}`)),
+                dom.p({},
+                    dom.span({}, "To allow this, we need to set a root signature. DXR and Compute shaders have different requirements here. For DXR, use SetComputeRootSignature with a global root signature with no parameters and the "),
+                    dom.span({}, "D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED flag. The root constant parameters for each shader you invoke with DXR will come from the SBT so there's no need to worry about them on the global signature. "),
+                    dom.span({}, "For compute shaders, you will need one parameter for the root constants; this is where we will pass the offsets for each resource. Use the D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED flag again. ")),
+                dom.p({},
+                    dom.span({}, "Once the root signature has been set, use SetDescriptorHeaps to set the heap you placed your resources in. You do not need to use SetComputeRootDescriptorTable, but if you are using a Compute shader, don't forget to "),
+                    dom.span({}, "call SetComputeRoot32BitConstants to set your root constants with the resource offsets in them. Once you have a descriptor heap and suitable root signature set, this is all that's needed to access resources without "),
+                    dom.span({}, "requiring any root signature binding.")));
+        }
+    }),
+};

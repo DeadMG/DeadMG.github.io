@@ -2,29 +2,19 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-with-addons.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router/4.0.0/react-router.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
-    <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
-    <link rel="stylesheet" href="http://css-spinners.com/css/spinner/spinner.css" type="text/css">
-	<link rel="stylesheet" type="text/css" href="css/codepuppy.css">
-    <script type="text/javascript">
-        var _gaq = _gaq || [];
-        _gaq.push(['_setAccount', 'UA-35434966-2']);
-        _gaq.push(['_trackPageview']);
-        (function () {
-            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-        })();
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/create-react-class/15.5.0/create-react-class.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom-factories@1.0.2/index.min.js "></script>
+    <script src="js/main.js"></script>
+    <script>        
+        document.addEventListener('DOMContentLoaded', function() {
+            ReactDOM.render(App({}, Main({})), document.getElementById("App"));	
+        }, false);
     </script>
-    <title>Coding Puppy</title>    
+    <title>Woof</title>
 </head>
 <body style="margin: 0px">
     <div id="App" class="app"></div>
-	<footer style="padding-left:16px">&copy; Puppy 2016 <a href="http://coliru.stacked-crooked.com">Compilation services provided by Coliru.</a></footer>
-    <script src="js/Wide.js"></script>
-	<script src="js/main.js"></script>
 </body>
 </html>
