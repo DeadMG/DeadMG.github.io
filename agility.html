@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/create-react-class/15.5.0/create-react-class.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom-factories@1.0.2/index.min.js "></script>
+    <script src="js/main.js"></script>
+    <script>        
+        document.addEventListener('DOMContentLoaded', function() {
+            ReactDOM.render(App({}, DXR.Agility({})), document.getElementById("App"));	
+        }, false);
+    </script>
+    <title>Woof</title>
+</head>
+<body style="margin: 0px">
+    <div id="App" class="app"></div>
+</body>
+</html>
